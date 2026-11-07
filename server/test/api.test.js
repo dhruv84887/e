@@ -72,6 +72,11 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   const jwt = (await import('jsonwebtoken')).default
   const adminCookie = `atelier_token=${jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' })}`
   await api.get('/api/admin/overview').set('Cookie', adminCookie).expect(200)
+  await api.get('/api/admin/customers').set('Cookie', customerCookie).expect(403)
+  const filteredCustomers = await api.get('/api/admin/customers?q=customer%40example.test&status=active&page=1').set('Cookie', adminCookie).expect(200)
+  assert.equal(filteredCustomers.body.pagination.total, 1)
+  assert.equal(filteredCustomers.body.pagination.page, 1)
+  assert.equal(filteredCustomers.body.customers[0].email, 'customer@example.test')
 
   const contactResponse = await api.post('/api/contact').send({ name: 'Curious Shopper', email: 'hello@example.test', subject: 'A question about delivery', message: 'Could you please tell me when this item will arrive?' }).expect(201)
   assert.match(contactResponse.body.message, /Thanks for writing/)

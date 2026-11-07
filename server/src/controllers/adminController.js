@@ -159,10 +159,19 @@ export const updateOrder = asyncHandler(async (req, res) => {
   res.json({ order })
 })
 export const customers = asyncHandler(async (req, res) => {
-  const users = await User.find({ role: 'customer' }).select('name email phone isActive createdAt').sort({ createdAt: -1 }).limit(100).lean()
+  const page = Math.max(1, Number(req.query.page) || 1), limit = 25
+  const filter = { role: 'customer' }
+  if (req.query.status === 'active') filter.isActive = true
+  if (req.query.status === 'inactive') filter.isActive = false
+  const q = String(req.query.q || '').trim()
+  if (q) { const rx = new RegExp(escapeRegex(q), 'i'); filter.$or = [{ name: rx }, { email: rx }] }
+  const [users, total] = await Promise.all([
+    User.find(filter).select('name email phone isActive createdAt').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.countDocuments(filter)
+  ])
   const ids = users.map((u) => u._id), counts = await Order.aggregate([{ $match: { user: { $in: ids }, status: { $nin: ['cancelled', 'refunded'] } } }, { $group: { _id: '$user', orders: { $sum: 1 }, spent: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, '$total', 0] } } } }])
   const byUser = new Map(counts.map((c) => [String(c._id), c]))
-  res.json({ customers: users.map((u) => ({ ...u, ...(byUser.get(String(u._id)) || { orders: 0, spent: 0 }) })) })
+  res.json({ customers: users.map((u) => ({ ...u, ...(byUser.get(String(u._id)) || { orders: 0, spent: 0 }) })), pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
 })
 export const customerDetails = asyncHandler(async (req, res) => { const user = await User.findOne({ _id: req.params.id, role: 'customer' }).select('name email phone addresses isActive createdAt'); if (!user) return res.status(404).json({ message: 'Customer not found.' }); const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).lean(); res.json({ customer: user, orders }) })
 export const adminReviews = asyncHandler(async (req, res) => {
