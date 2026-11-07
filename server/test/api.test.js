@@ -68,6 +68,24 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   const adminCookie = `atelier_token=${jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' })}`
   await api.get('/api/admin/overview').set('Cookie', adminCookie).expect(200)
 
+  const contactResponse = await api.post('/api/contact').send({ name: 'Curious Shopper', email: 'hello@example.test', subject: 'A question about delivery', message: 'Could you please tell me when this item will arrive?' }).expect(201)
+  assert.match(contactResponse.body.message, /Thanks for writing/)
+  const newsletterResponse = await api.post('/api/newsletter').send({ email: 'news@example.test' }).expect(201)
+  assert.match(newsletterResponse.body.message, /on the list/)
+  await api.get('/api/admin/communications/messages').set('Cookie', customerCookie).expect(403)
+  await api.get('/api/admin/communications/subscribers').set('Cookie', customerCookie).expect(403)
+  const inbox = await api.get('/api/admin/communications/messages?status=new').set('Cookie', adminCookie).expect(200)
+  assert.equal(inbox.body.newCount, 1)
+  assert.equal(inbox.body.messages[0].email, 'hello@example.test')
+  const messageId = inbox.body.messages[0]._id
+  await api.patch(`/api/admin/communications/messages/${messageId}`).set('Cookie', adminCookie).send({ status: 'not-a-status' }).expect(400)
+  await api.patch(`/api/admin/communications/messages/${messageId}`).set('Cookie', adminCookie).send({ status: 'read' }).expect(200)
+  const subscribers = await api.get('/api/admin/communications/subscribers?status=active&q=news%40example.test').set('Cookie', adminCookie).expect(200)
+  assert.equal(subscribers.body.pagination.total, 1)
+  const subscriberId = subscribers.body.subscribers[0]._id
+  await api.patch(`/api/admin/communications/subscribers/${subscriberId}`).set('Cookie', adminCookie).send({ isActive: false }).expect(200)
+  assert.equal((await api.get('/api/admin/communications/subscribers?status=active').set('Cookie', adminCookie).expect(200)).body.pagination.total, 0)
+
   const categoryResponse = await api.post('/api/admin/categories').set('Cookie', adminCookie).send({ name: 'Electronics', description: 'Test category' }).expect(201)
   const categoryId = categoryResponse.body.category._id
   const subcategoryResponse = await api.post('/api/admin/categories').set('Cookie', adminCookie).send({ name: 'Audio', parent: categoryId }).expect(201)

@@ -8,7 +8,9 @@ import Coupon from '../models/Coupon.js'
 import Banner from '../models/Banner.js'
 import Review from '../models/Review.js'
 import Payment from '../models/Payment.js'
-import { asyncHandler } from '../utils/http.js'
+import ContactMessage from '../models/ContactMessage.js'
+import Subscriber from '../models/Subscriber.js'
+import { asyncHandler, escapeRegex } from '../utils/http.js'
 import { countOrderSale, uncountOrderSale } from '../utils/sales.js'
 import { completeOrderRefund } from '../services/orderRefunds.js'
 
@@ -171,6 +173,40 @@ export const adminReviews = asyncHandler(async (req, res) => {
     Review.countDocuments(filter)
   ])
   res.json({ reviews, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
+})
+export const contactMessages = asyncHandler(async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1), limit = 25
+  const status = ['new', 'read', 'resolved'].includes(String(req.query.status)) ? String(req.query.status) : ''
+  const filter = status ? { status } : {}
+  const [messages, total, newCount] = await Promise.all([
+    ContactMessage.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    ContactMessage.countDocuments(filter), ContactMessage.countDocuments({ status: 'new' })
+  ])
+  res.json({ messages, newCount, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
+})
+export const updateContactMessage = asyncHandler(async (req, res) => {
+  const message = await ContactMessage.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true, runValidators: true })
+  if (!message) return res.status(404).json({ message: 'Contact message not found.' })
+  res.json({ message })
+})
+export const adminSubscribers = asyncHandler(async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1), limit = 50
+  const status = String(req.query.status || '')
+  const filter = {}
+  if (status === 'active') filter.isActive = true
+  if (status === 'inactive') filter.isActive = false
+  const q = String(req.query.q || '').trim()
+  if (q) filter.email = new RegExp(escapeRegex(q), 'i')
+  const [subscribers, total] = await Promise.all([
+    Subscriber.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Subscriber.countDocuments(filter)
+  ])
+  res.json({ subscribers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
+})
+export const updateSubscriber = asyncHandler(async (req, res) => {
+  const subscriber = await Subscriber.findByIdAndUpdate(req.params.id, { isActive: req.body.isActive }, { new: true, runValidators: true })
+  if (!subscriber) return res.status(404).json({ message: 'Subscriber not found.' })
+  res.json({ subscriber })
 })
 export const coupons = asyncHandler(async (req, res) => res.json({ coupons: await Coupon.find().sort({ createdAt: -1 }).lean() }))
 export const createCoupon = asyncHandler(async (req, res) => { const coupon = await Coupon.create({ ...req.body, code: req.body.code.toUpperCase() }); res.status(201).json({ coupon }) })

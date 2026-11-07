@@ -6,7 +6,7 @@ import { protect, adminOnly } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { productSchema, productUpdateSchema, categorySchema } from '../validators/index.js'
 import { asyncHandler } from '../utils/http.js'
-import { overview, adminProducts, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, adminOrders, updateOrder, customers, customerDetails, adminReviews, coupons, createCoupon, updateCoupon, deleteCoupon, banners, createBanner, updateBanner, deleteBanner, moderateReview } from '../controllers/adminController.js'
+import { overview, adminProducts, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, adminOrders, updateOrder, customers, customerDetails, adminReviews, contactMessages, updateContactMessage, adminSubscribers, updateSubscriber, coupons, createCoupon, updateCoupon, deleteCoupon, banners, createBanner, updateBanner, deleteBanner, moderateReview } from '../controllers/adminController.js'
 import Category from '../models/Category.js'
 
 const router = Router(), upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /^image\/(jpeg|png|webp|avif)$/.test(file.mimetype)) })
@@ -25,6 +25,10 @@ router.patch('/orders/:id', validate(z.object({ status: z.string(), trackingNumb
 router.get('/customers', customers)
 router.get('/customers/:id', customerDetails)
 router.get('/reviews', adminReviews)
+router.get('/communications/messages', contactMessages)
+router.patch('/communications/messages/:id', validate(z.object({ status: z.enum(['new', 'read', 'resolved']) })), updateContactMessage)
+router.get('/communications/subscribers', adminSubscribers)
+router.patch('/communications/subscribers/:id', validate(z.object({ isActive: z.boolean() })), updateSubscriber)
 router.get('/coupons', coupons)
 router.post('/coupons', validate(z.object({ code: z.string().trim().min(2).max(40), type: z.enum(['percent', 'fixed']), value: z.coerce.number().positive(), minSubtotal: z.coerce.number().min(0).optional(), maxDiscount: z.coerce.number().positive().optional(), usageLimit: z.coerce.number().int().positive().optional(), startsAt: z.coerce.date().optional(), expiresAt: z.coerce.date().optional(), isActive: z.boolean().optional() })), createCoupon)
 router.patch('/coupons/:id', validate(z.object({ isActive: z.boolean().optional(), value: z.coerce.number().positive().optional(), expiresAt: z.coerce.date().optional(), usageLimit: z.coerce.number().int().positive().optional() })), updateCoupon)
