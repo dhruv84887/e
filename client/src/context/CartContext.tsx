@@ -12,7 +12,7 @@ type CartValue = CartState & {
   freeShippingFrom: number
   currencyCode: string
   refresh: () => Promise<unknown>
-  add: (product: Product, quantity?: number, variantId?: string, color?: string) => Promise<void>
+  add: (product: Product, quantity?: number, variantId?: string, color?: string, size?: string) => Promise<void>
   setQuantity: (id: string, quantity: number) => Promise<void>
   remove: (id: string) => Promise<void>
   applyCoupon: (code: string) => Promise<void>
@@ -41,7 +41,7 @@ function guestTotals(items: CartItem[], config?: StoreConfig): CartState {
 }
 
 function sameChoice(a: CartItem, b: CartItem) {
-  return a.product._id === b.product._id && (a.variantId || '') === (b.variantId || '') && (a.color || '') === (b.color || '')
+  return a.product._id === b.product._id && (a.variantId || '') === (b.variantId || '') && (a.size || '') === (b.size || '') && (a.color || '') === (b.color || '')
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -72,7 +72,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             if (quantity > available) throw new Error(`Only ${available} of ${guestItem.product.name} are currently available. Review your bag before checkout.`)
             await api.patch(`/cart/items/${existing.id}`, { quantity })
           } else {
-            await api.post('/cart/items', { productId: guestItem.product._id, variantId: guestItem.variantId, color: guestItem.color, quantity: guestItem.quantity })
+            await api.post('/cart/items', { productId: guestItem.product._id, variantId: guestItem.variantId, size: guestItem.size, color: guestItem.color, quantity: guestItem.quantity })
           }
           const remaining = readGuest().filter((item) => item.id !== guestItem.id)
           localStorage.setItem(storageKey, JSON.stringify(remaining))
@@ -93,16 +93,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const state = user ? query.data || { items: [], subtotal: 0, discount: 0, tax: 0, shipping: 0, total: 0 } : guestState
   const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey: ['cart'] }), [queryClient])
 
-  const add = useCallback(async (product: Product, quantity = 1, variantId?: string, color?: string) => {
+  const add = useCallback(async (product: Product, quantity = 1, variantId?: string, color?: string, size?: string) => {
     if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Choose a valid quantity.')
     if (user) {
-      try { await api.post('/cart/items', { productId: product._id, variantId, color, quantity }); await refresh() }
+      try { await api.post('/cart/items', { productId: product._id, variantId, size, color, quantity }); await refresh() }
       catch (error) { throw new Error(messageOf(error)) }
       return
     }
     const variant = product.variants?.find((option) => option._id === variantId)
     const available = variant ? Math.min(product.stock, variant.stock) : product.stock
-    const existing = guestItems.find((item) => item.product._id === product._id && item.variantId === variantId && item.color === color)
+    const existing = guestItems.find((item) => item.product._id === product._id && item.variantId === variantId && item.size === size && item.color === color)
     if (product.isAvailable === false || available < (existing?.quantity || 0) + quantity) {
       throw new Error(available > 0 ? `Only ${available} of ${product.name} are available.` : `${product.name} is currently out of stock.`)
     }
@@ -110,7 +110,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (existing) {
       setGuestItems((items) => items.map((item) => item.id === existing.id ? { ...item, quantity: item.quantity + quantity, lineTotal: unitPrice * (item.quantity + quantity) } : item))
     } else {
-      setGuestItems((items) => [...items, { id: `${product._id}-${variantId || 'default'}-${color || ''}`, product, variantId, color, variant, quantity, unitPrice, lineTotal: unitPrice * quantity }])
+      setGuestItems((items) => [...items, { id: `${product._id}-${variantId || 'default'}-${size || ''}-${color || ''}`, product, variantId, size, color, variant, quantity, unitPrice, lineTotal: unitPrice * quantity }])
     }
   }, [user, refresh, guestItems])
 

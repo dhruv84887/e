@@ -18,7 +18,7 @@ async function getCart(userId) {
   if (!cart) cart = await Cart.create({ user: userId, items: [] })
   const items = cart.items.filter((item) => item.product && item.product.isActive).map((item) => {
     const product = item.product, variant = item.variantId ? product.variants.id(item.variantId) : null
-    return { id: item._id, product, variantId: item.variantId, color: item.color, variant, quantity: item.quantity, unitPrice: effectivePrice(product, variant), lineTotal: effectivePrice(product, variant) * item.quantity }
+    return { id: item._id, product, variantId: item.variantId, size: item.size, color: item.color, variant, quantity: item.quantity, unitPrice: effectivePrice(product, variant), lineTotal: effectivePrice(product, variant) * item.quantity }
   })
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
   let discount = 0
@@ -31,6 +31,7 @@ async function clearCartIfOrderMatches(userId, order) {
   const matches = order.items.every((ordered) => cart.items.some((item) =>
     String(item.product) === String(ordered.product) &&
     String(item.variantId || '') === String(ordered.variant?._id || '') &&
+    (!item.size || String(item.size) === String(ordered.variant?.size || '')) &&
     String(item.color || '') === String(ordered.variant?.color || '') &&
     item.quantity === ordered.quantity
   ))
@@ -42,16 +43,20 @@ export const clearCart = asyncHandler(async (req, res) => {
   res.json({ message: 'Your bag is clear.' })
 })
 export const addCartItem = asyncHandler(async (req, res) => {
-  const { productId, variantId, color, quantity = 1 } = req.body
+  const { productId, variantId, size, color, quantity = 1 } = req.body
   const product = await Product.findOne({ _id: productId, isActive: true, isAvailable: true })
   if (!product) return res.status(404).json({ message: 'This product is no longer available.' })
   const variant = variantId ? product.variants.id(variantId) : null
   if (variantId && !variant) return res.status(400).json({ message: 'That product option is no longer available.' })
+  const variantSize = variant?.options?.get('size')
+  const selectedSize = String(size || variantSize || '').trim()
+  if (selectedSize && !variant && !product.sizes.includes(selectedSize)) return res.status(400).json({ message: 'Choose a valid size for this product.' })
+  if (selectedSize && variantSize && selectedSize !== variantSize) return res.status(400).json({ message: 'That size does not match the selected product option.' })
   const available = variant ? Math.min(variant.stock, product.stock) : product.stock
   const cart = await Cart.findOneAndUpdate({ user: req.user._id }, { $setOnInsert: { user: req.user._id } }, { upsert: true, new: true })
-  const item = cart.items.find((i) => String(i.product) === String(productId) && String(i.variantId || '') === String(variantId || '') && String(i.color || '') === String(color || ''))
+  const item = cart.items.find((i) => String(i.product) === String(productId) && String(i.variantId || '') === String(variantId || '') && String(i.size || '') === selectedSize && String(i.color || '') === String(color || ''))
   if ((item?.quantity || 0) + Number(quantity) > available) return res.status(400).json({ message: `Only ${available} available in stock.` })
-  if (item) item.quantity += Number(quantity); else cart.items.push({ product: product._id, variantId: variant?._id, color, quantity: Number(quantity) })
+  if (item) item.quantity += Number(quantity); else cart.items.push({ product: product._id, variantId: variant?._id, size: selectedSize || undefined, color, quantity: Number(quantity) })
   await cart.save(); res.status(201).json(await getCart(req.user._id))
 })
 export const updateCartItem = asyncHandler(async (req, res) => {
@@ -106,7 +111,8 @@ export const createOrder = asyncHandler(async (req, res) => {
       const updated = await reserveItem({ product: product._id, variantId: item.variantId, quantity: item.quantity })
       if (!updated) throw Object.assign(new Error(`${product.name} does not have enough stock.`), { status: 400 })
       reserved.push({ product: product._id, variantId: item.variantId, quantity: item.quantity })
-      snapshot.push({ product: product._id, name: product.name, image: product.images?.[0]?.url || product.images?.[0] || '', sku: variant?.sku || product.sku, variant: variant ? { _id: String(variant._id), ...Object.fromEntries(variant.options || []), ...(item.color ? { color: item.color } : {}) } : item.color ? { color: item.color } : null, quantity: item.quantity, unitPrice })
+      const variantDetails = variant ? { _id: String(variant._id), ...Object.fromEntries(variant.options || []), ...(item.size ? { size: item.size } : {}), ...(item.color ? { color: item.color } : {}) } : (item.size || item.color) ? { ...(item.size ? { size: item.size } : {}), ...(item.color ? { color: item.color } : {}) } : null
+      snapshot.push({ product: product._id, name: product.name, image: product.images?.[0]?.url || product.images?.[0] || '', sku: variant?.sku || product.sku, variant: variantDetails, quantity: item.quantity, unitPrice })
     }
     const subtotal = snapshot.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
     const { coupon, discount } = await getCouponDiscount(req.body.couponCode || cart.couponCode, subtotal)
