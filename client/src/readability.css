@@ -1,0 +1,378 @@
+:root {
+  font-size: 16px;
+  --ease-polished: cubic-bezier(.2, .75, .25, 1);
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-timing-function: var(--ease-polished);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--olive) 65%, white);
+  outline-offset: 3px;
+}
+
+.eyebrow,
+.hero-kicker,
+.product-brand,
+.product-badge,
+.review-hint {
+  font-size: 11px;
+}
+
+.button,
+.text-link {
+  font-size: 13px;
+}
+
+.button-small {
+  font-size: 12px;
+}
+
+.announcement,
+.announcement a,
+.header-action,
+.nav-inner > a,
+.nav-categories > a {
+  font-size: 12px;
+}
+
+.wordmark {
+  font-size: 24px;
+}
+
+.wordmark small {
+  font-size: 9px;
+}
+
+.search-box {
+  height: 44px;
+}
+
+.search-box input,
+.search-suggestions > button > span,
+.search-suggestions b {
+  font-size: 13px;
+}
+
+.hero h1 {
+  font-size: clamp(52px, 6vw, 78px);
+}
+
+.hero-copy > p,
+.story-hero p,
+.collection-head p,
+.simple-page-heading p,
+.product-lede,
+.contact-copy > p,
+.faq-item > p,
+.policy-sections p,
+.auth-side > p {
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.hero-note,
+.hero-secondary,
+.trust-strip > div,
+.category-tile-copy > div {
+  font-size: 12px;
+}
+
+.section-heading h2,
+.instagram-heading h2 {
+  font-size: clamp(30px, 3vw, 38px);
+}
+
+.category-tile-copy h3 {
+  font-size: 24px;
+}
+
+.product-card-media img,
+.category-tile img {
+  transition-timing-function: var(--ease-polished);
+  transition-duration: .55s;
+}
+
+.product-name {
+  font-size: 14px;
+}
+
+.product-meta,
+.product-rating,
+.category-tile-copy > span {
+  font-size: 12px;
+}
+
+.price-group del {
+  font-size: 11px;
+}
+
+.field,
+.field-error,
+.input-icon input,
+.form-alert,
+.auth-subtitle,
+.form-under,
+.auth-alternate {
+  font-size: 14px;
+}
+
+.field > input,
+.field > textarea,
+.field > select,
+.contact-form input,
+.contact-form textarea {
+  min-height: 46px;
+  font-size: 15px;
+}
+
+.checkout-address-select {
+  max-width: 540px;
+  margin-bottom: 18px;
+}
+
+.checkout-save-address {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.site-footer .footer-links > a,
+.footer-contact,
+.footer-bottom {
+  font-size: 12px;
+}
+
+.admin-nav-link,
+.admin-toolbar,
+.admin-page-head > div > span,
+.admin-primary,
+.admin-secondary,
+.admin-pagination,
+.admin-order-number {
+  font-size: 12px;
+}
+
+.admin-nav-label,
+.admin-table th,
+.admin-table td,
+.admin-filter-tabs button,
+.metric-card > span,
+.metric-card > small,
+.admin-top-date {
+  font-size: 11px;
+}
+
+.admin-intro,
+.admin-category-copy p {
+  font-size: 14px;
+}
+
+.admin-category-copy h3 {
+  font-size: 16px;
+}
+
+.admin-page-head h1 {
+  font-size: 32px;
+}
+
+.metric-card > strong {
+  font-size: 27px;
+}
+
+.button,
+.icon-button,
+.favorite-button,
+.nav-dropdown,
+.search-suggestions,
+.quick-view,
+.admin-sidebar {
+  transition-duration: .28s;
+}
+
+.button:hover,
+.favorite-button:hover {
+  transition-duration: .2s;
+}
+
+@media (max-width: 640px) {
+  .announcement {
+    min-height: 31px;
+    height: auto;
+    gap: 7px;
+    padding: 5px 12px;
+    font-size: 10px;
+    text-align: center;
+    flex-wrap: wrap;
+  }
+
+  .announcement > span:nth-child(3) {
+    display: none;
+  }
+
+  .announcement a {
+    font-size: 10px;
+  }
+
+  .hero h1 {
+    font-size: clamp(42px, 8vw, 50px);
+  }
+
+  .hero-note {
+    position: static;
+    margin: 18px 0 0;
+  }
+
+  .hero-copy > p,
+  .story-hero p,
+  .collection-head p,
+  .simple-page-heading p,
+  .product-lede,
+  .contact-copy > p,
+  .faq-item > p,
+  .policy-sections p,
+  .auth-side > p {
+    font-size: 14px;
+  }
+
+  .section-heading h2,
+  .instagram-heading h2 {
+    font-size: 27px;
+  }
+
+  .product-name {
+    font-size: 13px;
+  }
+
+  .category-tile-copy h3 {
+    font-size: 18px;
+  }
+
+  .admin-table th,
+  .admin-table td,
+  .admin-filter-tabs button,
+  .admin-page-head > div > span,
+  .metric-card > span,
+  .metric-card > small {
+    font-size: 10px;
+  }
+
+  .admin-nav-link,
+  .admin-toolbar,
+  .admin-primary,
+  .admin-secondary,
+  .admin-pagination {
+    font-size: 11px;
+  }
+
+  .eyebrow,
+  .hero-kicker,
+  .product-brand,
+  .product-badge {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 390px) {
+  .category-tile-copy h3 {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+.admin-review-table {
+  min-width: 900px;
+}
+
+.admin-review-copy {
+  min-width: 240px;
+  max-width: 320px;
+}
+
+.admin-review-copy > * {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.admin-review-copy .admin-review-rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #94742f;
+  font-weight: 700;
+}
+
+.admin-review-copy > small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.5;
+}
+
+.admin-review-copy > time {
+  color: var(--muted, #777);
+}
+
+.admin-text-button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.refund-substatus {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.refund-pending {
+  color: #8a6a20;
+}
+
+.refund-processed {
+  color: #466b4e;
+}
+
+.refund-failed {
+  color: #a44438;
+}
+
+.payment-unavailable {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.cancel-pending-payment {
+  display: inline-flex;
+  margin-left: 8px;
+}

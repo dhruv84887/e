@@ -1,0 +1,68 @@
+# Atelier Commerce
+
+A configurable, full-stack multi-category store built with React, TypeScript, Vite, Express, and MongoDB/Mongoose. The repo includes the customer storefront, account and order flows, REST API, payment verification, inventory logic, and a role-protected admin dashboard.
+
+## Run locally
+
+### Quick preview
+
+Install Node.js 20 or newer, then run:
+
+```bash
+npm install
+npm run dev:preview
+```
+
+Open `http://localhost:5173`. This preview starts the API on `http://localhost:4000/api`, creates a local in-memory MongoDB, and seeds sample catalog data. Preview changes disappear when the process stops. It is useful for reviewing the UI and exercising the main flows; use a persistent database for regular development.
+
+### Persistent development database
+
+1. Copy `.env.example` to `server/.env` and configure `MONGODB_URI` and a long, random `JWT_SECRET`.
+2. Run `npm run seed` to add or update sample categories and products.
+3. Run `npm run dev` to start the Vite client and Express API.
+
+To create a development administrator, set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and optionally `SEED_ADMIN_NAME` in `server/.env` before running the seed command. The password is hashed before it is stored. There is no public administrator signup route.
+
+## Storefront and admin features
+
+- Responsive home, shop, category, search, product, wishlist, cart, checkout, account, order, information, and not-found pages.
+- Catalog search, suggestions, category and subcategory filters, price and rating filters, stock filtering, sorting, and pagination backed by MongoDB.
+- Guest cart and wishlist persistence; signed-in carts and wishlists sync through the API.
+- Registration, login, logout, password reset, account profile, and saved shipping addresses. Sessions use signed HTTP-only cookies.
+- Server-calculated discounts, tax, shipping, and totals; stock is reserved and checked on the server before checkout.
+- Cash on delivery and Razorpay checkout support. Razorpay payment signatures are verified on the server, and signed webhooks track refund completion.
+- Order history, cancellation, shipping updates, tracking links, and review eligibility based on delivered purchases.
+- Admin overview and analytics, product and category management, customer and order views, coupon and banner management, review moderation, image upload, and stock reporting.
+
+## Optional integrations
+
+- **Razorpay:** set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` on the server to enable online checkout. Use test credentials first. Configure a Razorpay webhook to `https://your-api-origin/api/webhooks/razorpay` with the `refund.processed` and `refund.failed` events, then set its signing secret as `RAZORPAY_WEBHOOK_SECRET`. The browser callback alone never marks a payment successful.
+- **Cloudinary:** set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` to enable the authenticated admin image uploader. Product images can also be managed with hosted image URLs.
+- **Email:** configure the SMTP variables in `server/.env` to deliver password-reset links. Without SMTP, reset links are only logged in non-production environments.
+
+Cash on delivery remains available when Razorpay is not configured. The app intentionally contains no production payment, mail, image-hosting, or database credentials.
+
+## Environment configuration
+
+The API reads `server/.env` or its process environment. Configure the store name, logo, colors, currency, tax rate, shipping amount, free-shipping threshold, and customer contact details there. Keep `CLIENT_URL` limited to the exact storefront origin(s); set `COOKIE_SECURE=true` and use HTTPS in production. Use a managed MongoDB deployment with backups, a unique production `JWT_SECRET`, and production Razorpay/Cloudinary credentials kept only on the server.
+
+For a single-origin deployment, build the client with `npm run build`, then run the server with `NODE_ENV=production npm start`; the Express app serves `client/dist` and the `/api` routes together. Configure the production environment before starting it. If the storefront is hosted separately, set `VITE_API_URL` at client build time and set `CLIENT_URL` to its exact origin on the API.
+
+## Verify changes
+
+```bash
+npm test
+npm run build
+```
+
+The API suite uses an isolated in-memory MongoDB. It covers health/config, validation, password hashing and cookie auth, admin access, saved addresses, catalog filters, cart/coupons, checkout inventory rollback, COD delivery, review verification and moderation, Razorpay signature verification, refund webhook signatures, cancellation, late-payment rejection, and analytics. Razorpay gateway calls are not made by the test suite.
+
+## Project layout
+
+- `client/` — React storefront, customer account, admin interface, shared components, and API client.
+- `server/` — Express routes/controllers, Mongoose models, input validation, auth/security middleware, and payment/refund services.
+- `README.md` and `.env.example` — setup, integration, and configuration guidance.
+
+## API overview
+
+Public catalog and store endpoints live under `/api/products`, `/api/categories`, `/api/config`, `/api/banners`, `/api/reviews`, and `/api/newsletter`. Customer routes cover `/api/auth`, `/api/cart`, `/api/wishlist`, `/api/orders`, `/api/coupons`, and `/api/payments`. Administrators use `/api/admin`; the signed Razorpay refund webhook uses `/api/webhooks/razorpay`.

@@ -1,0 +1,17 @@
+{
+  "name": "atelier-commerce",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "npm --workspace client run dev",
+    "dev:server": "npm --workspace server run dev",
+    "dev:preview": "concurrently -k -n api,web -c blue,magenta \"npm --workspace server run dev:memory\" \"npm:dev:client\"",
+    "build": "npm --workspace client run build && npm --workspace server run check",
+    "test": "npm --workspace server test",
+    "start": "npm --workspace server run start",
+    "seed": "npm --workspace server run seed"
+  },
+  "devDependencies": { "concurrently": "^9.1.0" }
+}
