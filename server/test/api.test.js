@@ -275,4 +275,8 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.equal(sizeOrder.body.order.items[0].variant.size, 'M')
   await api.post(`/api/orders/${sizeOrder.body.order._id}/cancel`).set('Cookie', customerCookie).send({ reason: 'Testing size inventory release' }).expect(200)
   assert.equal((await (await import('../src/models/Product.js')).default.findById(sizeOnlyProduct.body.product._id)).stock, 3)
+  const unavailableProduct = await api.post('/api/admin/products').set('Cookie', adminCookie).send({ name: 'Temporarily unavailable find', description: 'This item is kept visible on its own page but cannot be purchased.', category: categoryId, price: 700, stock: 4, isAvailable: false }).expect(201)
+  const unavailableDetails = await api.get(`/api/products/${unavailableProduct.body.product.slug}`).expect(200)
+  assert.equal(unavailableDetails.body.product.isAvailable, false)
+  await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: unavailableProduct.body.product._id, quantity: 1 }).expect(404)
 })
