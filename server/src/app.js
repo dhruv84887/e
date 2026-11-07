@@ -13,12 +13,15 @@ import adminRoutes from './routes/adminRoutes.js'
 import storeRoutes from './routes/storeRoutes.js'
 import webhookRoutes from './routes/webhookRoutes.js'
 import { errorHandler, notFound } from './middleware/errors.js'
+import { requestOriginGuard } from './middleware/requestOrigin.js'
 
 const app = express()
+const clientOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((s) => s.trim())
 app.disable('x-powered-by')
 app.set('trust proxy', 1)
 app.use(helmet({ crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], baseUri: ["'self'"], objectSrc: ["'none'"], frameAncestors: ["'self'"], imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://res.cloudinary.com', 'https://*.razorpay.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'], scriptSrc: ["'self'", 'https://checkout.razorpay.com'], connectSrc: ["'self'", 'https://*.razorpay.com'], frameSrc: ["'self'", 'https://*.razorpay.com'] } } }))
-app.use(cors({ origin: (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((s) => s.trim()), credentials: true }))
+app.use(cors({ origin: clientOrigins, credentials: true }))
+app.use('/api', requestOriginGuard(clientOrigins))
 app.use(express.json({ limit: '1mb', verify: (req, res, buffer) => { req.rawBody = Buffer.from(buffer) } }))
 app.use(express.urlencoded({ extended: false, limit: '1mb' }))
 app.use(cookieParser())

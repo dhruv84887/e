@@ -59,7 +59,8 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.notEqual(storedCustomer.password, 'securepass123')
   await api.get('/api/auth/me').set('Cookie', customerCookie).expect(200)
   await api.get('/api/admin/overview').set('Cookie', customerCookie).expect(403)
-  await api.post('/api/auth/addresses').set('Cookie', customerCookie).send({ label: 'Home', fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India', isDefault: true }).expect(201)
+  await api.post('/api/auth/addresses').set('Cookie', customerCookie).set('Origin', 'https://attacker.example').send({ label: 'Home', fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India', isDefault: true }).expect(403)
+  await api.post('/api/auth/addresses').set('Cookie', customerCookie).set('Origin', 'http://localhost:5173').send({ label: 'Home', fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India', isDefault: true }).expect(201)
   const addresses = await api.get('/api/auth/addresses').set('Cookie', customerCookie).expect(200)
   assert.equal(addresses.body.addresses[0].isDefault, true)
 
