@@ -10,6 +10,7 @@ import { overview, adminProducts, createProduct, updateProduct, deleteProduct, c
 import Category from '../models/Category.js'
 
 const router = Router(), upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /^image\/(jpeg|png|webp|avif)$/.test(file.mimetype)) })
+const couponCreateSchema = z.object({ code: z.string().trim().min(2).max(40), type: z.enum(['percent', 'fixed']), value: z.coerce.number().positive(), minSubtotal: z.coerce.number().min(0).optional(), maxDiscount: z.coerce.number().positive().optional(), usageLimit: z.coerce.number().int().positive().optional(), startsAt: z.coerce.date().optional(), expiresAt: z.coerce.date().optional(), isActive: z.boolean().optional() }).superRefine((coupon, context) => { if (coupon.type === 'percent' && coupon.value > 100) context.addIssue({ code: 'custom', path: ['value'], message: 'Percentage discounts cannot exceed 100%.' }) })
 router.use(protect, adminOnly)
 router.get('/overview', overview)
 router.get('/products', adminProducts)
@@ -30,8 +31,8 @@ router.patch('/communications/messages/:id', validate(z.object({ status: z.enum(
 router.get('/communications/subscribers', adminSubscribers)
 router.patch('/communications/subscribers/:id', validate(z.object({ isActive: z.boolean() })), updateSubscriber)
 router.get('/coupons', coupons)
-router.post('/coupons', validate(z.object({ code: z.string().trim().min(2).max(40), type: z.enum(['percent', 'fixed']), value: z.coerce.number().positive(), minSubtotal: z.coerce.number().min(0).optional(), maxDiscount: z.coerce.number().positive().optional(), usageLimit: z.coerce.number().int().positive().optional(), startsAt: z.coerce.date().optional(), expiresAt: z.coerce.date().optional(), isActive: z.boolean().optional() })), createCoupon)
-router.patch('/coupons/:id', validate(z.object({ isActive: z.boolean().optional(), value: z.coerce.number().positive().optional(), expiresAt: z.coerce.date().optional(), usageLimit: z.coerce.number().int().positive().optional() })), updateCoupon)
+router.post('/coupons', validate(couponCreateSchema), createCoupon)
+router.patch('/coupons/:id', validate(z.object({ isActive: z.boolean().optional(), type: z.enum(['percent', 'fixed']).optional(), value: z.coerce.number().positive().optional(), minSubtotal: z.coerce.number().min(0).optional(), maxDiscount: z.union([z.null(), z.coerce.number().positive()]).optional(), expiresAt: z.union([z.null(), z.coerce.date()]).optional(), usageLimit: z.union([z.null(), z.coerce.number().int().positive()]).optional() })), updateCoupon)
 router.delete('/coupons/:id', deleteCoupon)
 router.get('/banners', banners)
 router.post('/banners', validate(z.object({ title: z.string().trim().min(2), subtitle: z.string().optional(), image: z.string().url(), href: z.string().optional(), placement: z.enum(['hero', 'promo', 'collection']).optional(), isActive: z.boolean().optional(), sortOrder: z.coerce.number().optional(), startsAt: z.coerce.date().optional(), endsAt: z.coerce.date().optional() })), createBanner)

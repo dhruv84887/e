@@ -210,7 +210,16 @@ export const updateSubscriber = asyncHandler(async (req, res) => {
 })
 export const coupons = asyncHandler(async (req, res) => res.json({ coupons: await Coupon.find().sort({ createdAt: -1 }).lean() }))
 export const createCoupon = asyncHandler(async (req, res) => { const coupon = await Coupon.create({ ...req.body, code: req.body.code.toUpperCase() }); res.status(201).json({ coupon }) })
-export const updateCoupon = asyncHandler(async (req, res) => { const coupon = await Coupon.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }); if (!coupon) return res.status(404).json({ message: 'Coupon not found.' }); res.json({ coupon }) })
+export const updateCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findById(req.params.id)
+  if (!coupon) return res.status(404).json({ message: 'Coupon not found.' })
+  const nextType = req.body.type ?? coupon.type, nextValue = req.body.value ?? coupon.value
+  if (nextType === 'percent' && nextValue > 100) return res.status(400).json({ message: 'Percentage discounts cannot exceed 100%.' })
+  if (req.body.usageLimit != null && req.body.usageLimit < coupon.usedCount) return res.status(409).json({ message: 'The usage limit cannot be lower than the number of times this coupon has already been used.' })
+  Object.assign(coupon, req.body)
+  await coupon.save()
+  res.json({ coupon })
+})
 export const deleteCoupon = asyncHandler(async (req, res) => { const coupon = await Coupon.findByIdAndDelete(req.params.id); if (!coupon) return res.status(404).json({ message: 'Coupon not found.' }); res.json({ message: 'Coupon removed.' }) })
 export const banners = asyncHandler(async (req, res) => res.json({ banners: await Banner.find().sort({ sortOrder: 1, createdAt: -1 }).lean() }))
 export const createBanner = asyncHandler(async (req, res) => { const banner = await Banner.create(req.body); res.status(201).json({ banner }) })
