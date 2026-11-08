@@ -77,6 +77,10 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.equal(filteredCustomers.body.pagination.total, 1)
   assert.equal(filteredCustomers.body.pagination.page, 1)
   assert.equal(filteredCustomers.body.customers[0].email, 'customer@example.test')
+  const customerProfile = await api.get(`/api/admin/customers/${registered.body.user.id}`).set('Cookie', adminCookie).expect(200)
+  assert.equal(customerProfile.body.addresses.length, 1)
+  assert.equal(customerProfile.body.addresses[0].line1, '1 Test Street')
+  assert.equal(customerProfile.body.addresses[0].isDefault, true)
 
   const contactResponse = await api.post('/api/contact').send({ name: 'Curious Shopper', email: 'hello@example.test', subject: 'A question about delivery', message: 'Could you please tell me when this item will arrive?' }).expect(201)
   assert.match(contactResponse.body.message, /Thanks for writing/)

@@ -383,3 +383,47 @@ textarea:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+.customer-address-list {
+  display: grid;
+  gap: 9px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 22px;
+}
+
+.customer-address-card {
+  padding: 12px 14px;
+  border: 1px solid #e8e7e4;
+  border-radius: 10px;
+  background: #faf9f7;
+  color: #55534f;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.customer-address-card > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #242320;
+}
+
+.customer-address-card p {
+  margin: 3px 0 0;
+}
+
+.customer-default-address {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eceae5;
+  color: #68645d;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.customer-address-empty {
+  margin-bottom: 22px;
+  color: #77736d;
+  font-size: 12px;
+}

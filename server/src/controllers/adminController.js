@@ -4,6 +4,7 @@ import Product from '../models/Product.js'
 import Category from '../models/Category.js'
 import Order from '../models/Order.js'
 import User from '../models/User.js'
+import Address from '../models/Address.js'
 import Coupon from '../models/Coupon.js'
 import Banner from '../models/Banner.js'
 import Review from '../models/Review.js'
@@ -179,11 +180,12 @@ export const customerDetails = asyncHandler(async (req, res) => {
   const rawPage = Number(req.query.page || 1)
   if (!Number.isInteger(rawPage) || rawPage < 1) return res.status(400).json({ message: 'Page must be a positive whole number.' })
   const page = rawPage, limit = 10, filter = { user: user._id }
-  const [orders, total] = await Promise.all([
+  const [orders, total, addresses] = await Promise.all([
     Order.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
-    Order.countDocuments(filter)
+    Order.countDocuments(filter),
+    Address.find({ user: user._id }).sort({ isDefault: -1, createdAt: -1 }).lean()
   ])
-  res.json({ customer: user, orders, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
+  res.json({ customer: user, addresses, orders, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
 })
 export const adminReviews = asyncHandler(async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1), limit = 25
