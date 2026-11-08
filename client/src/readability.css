@@ -474,3 +474,22 @@ textarea:focus-visible {
 .orders-pagination {
   margin-bottom: 40px;
 }
+
+.saved-address-top button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #73776e;
+  transition: background .2s var(--ease-polished), color .2s var(--ease-polished);
+}
+
+.saved-address-top button:hover {
+  background: #f0f1ec;
+  color: #343d32;
+}
+
+.saved-address-top button + button {
+  margin-left: 0;
+}
