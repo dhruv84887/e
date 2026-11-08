@@ -6,7 +6,7 @@ import { protect, adminOnly } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { productSchema, productUpdateSchema, categorySchema } from '../validators/index.js'
 import { asyncHandler } from '../utils/http.js'
-import { overview, adminProducts, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, adminOrders, updateOrder, customers, customerDetails, adminReviews, contactMessages, updateContactMessage, adminSubscribers, updateSubscriber, coupons, createCoupon, updateCoupon, deleteCoupon, banners, createBanner, updateBanner, deleteBanner, moderateReview } from '../controllers/adminController.js'
+import { overview, adminProducts, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, adminOrders, updateOrder, customers, customerDetails, updateCustomerStatus, adminReviews, contactMessages, updateContactMessage, adminSubscribers, updateSubscriber, coupons, createCoupon, updateCoupon, deleteCoupon, banners, createBanner, updateBanner, deleteBanner, moderateReview } from '../controllers/adminController.js'
 import Category from '../models/Category.js'
 
 const router = Router(), upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /^image\/(jpeg|png|webp|avif)$/.test(file.mimetype)) })
@@ -25,6 +25,7 @@ router.get('/orders', adminOrders)
 router.patch('/orders/:id', validate(z.object({ status: z.string(), trackingNumber: z.string().max(100).optional(), trackingUrl: z.string().url().optional() })), updateOrder)
 router.get('/customers', customers)
 router.get('/customers/:id', customerDetails)
+router.patch('/customers/:id', validate(z.object({ isActive: z.boolean() })), updateCustomerStatus)
 router.get('/reviews', adminReviews)
 router.get('/communications/messages', contactMessages)
 router.patch('/communications/messages/:id', validate(z.object({ status: z.enum(['new', 'read', 'resolved']) })), updateContactMessage)

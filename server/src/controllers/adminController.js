@@ -187,6 +187,15 @@ export const customerDetails = asyncHandler(async (req, res) => {
   ])
   res.json({ customer: user, addresses, orders, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
 })
+export const updateCustomerStatus = asyncHandler(async (req, res) => {
+  const customer = await User.findOneAndUpdate(
+    { _id: req.params.id, role: 'customer' },
+    { $set: { isActive: req.body.isActive } },
+    { new: true, runValidators: true }
+  ).select('name email isActive')
+  if (!customer) return res.status(404).json({ message: 'Customer not found.' })
+  res.json({ customer })
+})
 export const adminReviews = asyncHandler(async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1), limit = 25
   const filter = req.query.status === 'published' ? { isPublished: true } : req.query.status === 'hidden' ? { isPublished: false } : {}

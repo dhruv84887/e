@@ -427,3 +427,40 @@ textarea:focus-visible {
   color: #77736d;
   font-size: 12px;
 }
+
+.customer-status-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 22px;
+}
+
+.customer-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #67675e;
+  font-size: 11px;
+}
+
+.customer-status-badge::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7b9270;
+  content: '';
+}
+
+.customer-status-badge.inactive::before {
+  background: #b07363;
+}
+
+.customer-status-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+}
