@@ -160,6 +160,7 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
 
   const cartResponse = await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId, quantity: 2 }).expect(201)
   assert.equal(cartResponse.body.items[0].quantity, 2)
+  assert.equal(cartResponse.body.items[0].available, true)
   assert.equal(cartResponse.body.subtotal, 1800)
   await api.delete('/api/cart').set('Cookie', customerCookie).expect(200)
   assert.equal((await api.get('/api/cart').set('Cookie', customerCookie).expect(200)).body.items.length, 0)
@@ -300,6 +301,28 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   const unavailableDetails = await api.get(`/api/products/${unavailableProduct.body.product.slug}`).expect(200)
   assert.equal(unavailableDetails.body.product.isAvailable, false)
   await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: unavailableProduct.body.product._id, quantity: 1 }).expect(404)
+
+  const variantProduct = await api.post('/api/admin/products').set('Cookie', adminCookie).send({
+    name: 'Canvas tote with options', description: 'A test product with size and color options.', category: categoryId,
+    price: 600, stock: 2, sizes: ['M'], colors: ['Black'],
+    variants: [{ name: 'Medium in black', stock: 2, options: { size: 'M', color: 'Black' } }]
+  }).expect(201)
+  const selectedVariantId = variantProduct.body.product.variants[0]._id
+  await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: variantProduct.body.product._id }).expect(400)
+  await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: variantProduct.body.product._id, variantId: selectedVariantId, color: 'Ivory' }).expect(400)
+  const selectedVariantCart = await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: variantProduct.body.product._id, variantId: selectedVariantId }).expect(201)
+  assert.equal(selectedVariantCart.body.items[0].color, 'Black')
+  const mergedVariantCart = await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: variantProduct.body.product._id, variantId: selectedVariantId }).expect(201)
+  assert.equal(mergedVariantCart.body.items.length, 1)
+  assert.equal(mergedVariantCart.body.items[0].quantity, 2)
+  await api.patch(`/api/admin/products/${variantProduct.body.product._id}`).set('Cookie', adminCookie).send({ variants: [] }).expect(200)
+  const staleVariantCart = await api.get('/api/cart').set('Cookie', customerCookie).expect(200)
+  assert.equal(staleVariantCart.body.items[0].available, false)
+  assert.equal(staleVariantCart.body.subtotal, 0)
+  await api.post('/api/orders').set('Cookie', customerCookie).send({ paymentMethod: 'cod', shippingAddress: { fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India' } }).expect(400)
+  await api.delete(`/api/cart/items/${staleVariantCart.body.items[0].id}`).set('Cookie', customerCookie).expect(200)
+  assert.equal((await (await import('../src/models/Product.js')).default.findById(variantProduct.body.product._id)).stock, 2)
+
   const customerHistory = await api.get(`/api/admin/customers/${registered.body.user.id}?page=1`).set('Cookie', adminCookie).expect(200)
   assert.ok(customerHistory.body.pagination.total >= 5)
   assert.ok(customerHistory.body.orders.length > 0)

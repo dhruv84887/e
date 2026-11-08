@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import { currency, imageUrl } from '../utils/format'
 import { useToast } from '../context/ToastContext'
 import type { Address } from '../types'
+import { isCartItemAvailable } from '../utils/cart'
 
 declare global { interface Window { Razorpay?: new (options: Record<string, unknown>) => { open: () => void } } }
 const schema = z.object({ fullName: z.string().trim().min(2, 'Enter the name for this delivery.'), phone: z.string().trim().min(8, 'Enter a valid phone number.'), line1: z.string().trim().min(3, 'Add a street address.'), line2: z.string().optional(), city: z.string().trim().min(2, 'Add your city.'), state: z.string().trim().min(2, 'Add your state.'), postalCode: z.string().trim().min(4, 'Add your postal code.'), country: z.string().trim().min(2), label: z.string().default('Home'), isDefault: z.boolean().default(false) })
@@ -48,6 +49,7 @@ export function CheckoutPage() {
   }
   if (!user) return <div className="page-wrap auth-checkout"><span className="empty-icon"><LockKeyhole size={25} /></span><span className="eyebrow">One small step</span><h1>Sign in to finish up.</h1><p>Your bag is safe. Sign in or create an account and we’ll bring you right back here.</p><div><Link className="button button-dark" to="/login?next=%2Fcheckout">Sign in <ArrowRight size={15} /></Link><Link className="button button-outline" to="/register?next=%2Fcheckout">Create an account</Link></div></div>
   if (!cart.items.length) return <div className="page-wrap auth-checkout"><span className="empty-icon"><PackageCheck size={25} /></span><h1>Your bag is empty.</h1><Link className="button button-dark" to="/shop">Find something good <ArrowRight size={15} /></Link></div>
+  if (cart.items.some((item) => !isCartItemAvailable(item))) return <div className="page-wrap auth-checkout"><span className="empty-icon"><PackageCheck size={25} /></span><span className="eyebrow">A small update</span><h1>Your bag needs a quick review.</h1><p>One or more items are no longer available at the selected option or quantity. You can remove them or adjust the quantity in your bag.</p><Link className="button button-dark" to="/cart">Review your bag <ArrowRight size={15} /></Link></div>
   const submit = form.handleSubmit(async (values) => {
     setFormError('')
     try {

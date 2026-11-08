@@ -16,11 +16,13 @@ const effectivePrice = (product, variant) => Number(variant?.price ?? product.di
 async function getCart(userId) {
   let cart = await Cart.findOne({ user: userId }).populate('items.product')
   if (!cart) cart = await Cart.create({ user: userId, items: [] })
-  const items = cart.items.filter((item) => item.product && item.product.isActive).map((item) => {
+  const items = cart.items.filter((item) => item.product).map((item) => {
     const product = item.product, variant = item.variantId ? product.variants.id(item.variantId) : null
-    return { id: item._id, product, variantId: item.variantId, size: item.size, color: item.color, variant, quantity: item.quantity, unitPrice: effectivePrice(product, variant), lineTotal: effectivePrice(product, variant) * item.quantity }
+    const stock = variant ? Math.min(variant.stock, product.stock) : product.stock
+    const available = Boolean(product.isActive && product.isAvailable && (!item.variantId || variant) && stock >= item.quantity)
+    return { id: item._id, product, variantId: item.variantId, size: item.size, color: item.color, variant, quantity: item.quantity, unitPrice: effectivePrice(product, variant), lineTotal: effectivePrice(product, variant) * item.quantity, available }
   })
-  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const subtotal = items.reduce((sum, item) => sum + (item.available ? item.lineTotal : 0), 0)
   let discount = 0
   if (cart.couponCode) { try { ({ discount } = await getCouponDiscount(cart.couponCode, subtotal)) } catch { cart.couponCode = undefined; await cart.save() } }
   return { cart, items, ...calculateTotals(subtotal, discount), ...(cart.couponCode ? { coupon: { code: cart.couponCode, discount } } : {}) }
@@ -49,26 +51,37 @@ export const addCartItem = asyncHandler(async (req, res) => {
   const variant = variantId ? product.variants.id(variantId) : null
   if (variantId && !variant) return res.status(400).json({ message: 'That product option is no longer available.' })
   const variantSize = variant?.options?.get('size')
+  const variantColor = variant?.options?.get('color')
   const selectedSize = String(size || variantSize || '').trim()
+  const selectedColor = String(color || variantColor || '').trim()
+  if (product.variants.length && !variant) return res.status(400).json({ message: 'Choose a product option before adding this item.' })
+  if (product.sizes.length && !selectedSize && !variantSize) return res.status(400).json({ message: 'Choose a size before adding this item.' })
   if (selectedSize && !variant && !product.sizes.includes(selectedSize)) return res.status(400).json({ message: 'Choose a valid size for this product.' })
   if (selectedSize && variantSize && selectedSize !== variantSize) return res.status(400).json({ message: 'That size does not match the selected product option.' })
+  if (product.colors.length && !selectedColor) return res.status(400).json({ message: 'Choose a color before adding this item.' })
+  if (selectedColor && !variant && !product.colors.includes(selectedColor)) return res.status(400).json({ message: 'Choose a valid color for this product.' })
+  if (selectedColor && variantColor && selectedColor !== variantColor) return res.status(400).json({ message: 'That color does not match the selected product option.' })
   const available = variant ? Math.min(variant.stock, product.stock) : product.stock
   const cart = await Cart.findOneAndUpdate({ user: req.user._id }, { $setOnInsert: { user: req.user._id } }, { upsert: true, new: true })
-  const item = cart.items.find((i) => String(i.product) === String(productId) && String(i.variantId || '') === String(variantId || '') && String(i.size || '') === selectedSize && String(i.color || '') === String(color || ''))
+  const item = cart.items.find((i) => String(i.product) === String(productId) && String(i.variantId || '') === String(variantId || '') && String(i.size || '') === selectedSize && String(i.color || '') === selectedColor)
   if ((item?.quantity || 0) + Number(quantity) > available) return res.status(400).json({ message: `Only ${available} available in stock.` })
-  if (item) item.quantity += Number(quantity); else cart.items.push({ product: product._id, variantId: variant?._id, size: selectedSize || undefined, color, quantity: Number(quantity) })
+  if (item) item.quantity += Number(quantity); else cart.items.push({ product: product._id, variantId: variant?._id, size: selectedSize || undefined, color: selectedColor || undefined, quantity: Number(quantity) })
   await cart.save(); res.status(201).json(await getCart(req.user._id))
 })
 export const updateCartItem = asyncHandler(async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id }).populate('items.product')
   const item = cart?.items.id(req.params.itemId); if (!item) return res.status(404).json({ message: 'Cart item not found.' })
+  if (!item.product) return res.status(404).json({ message: 'This product is no longer available. Remove it from your bag.' })
   const product = item.product, variant = item.variantId ? product.variants.id(item.variantId) : null
-  if (Number(req.body.quantity) > (variant ? Math.min(variant.stock, product.stock) : product.stock)) return res.status(400).json({ message: 'Requested quantity exceeds available stock.' })
+  if (Number(req.body.quantity) > item.quantity) {
+    if (!product.isActive || !product.isAvailable || (item.variantId && !variant)) return res.status(400).json({ message: 'This item is no longer available to add.' })
+    if (Number(req.body.quantity) > (variant ? Math.min(variant.stock, product.stock) : product.stock)) return res.status(400).json({ message: 'Requested quantity exceeds available stock.' })
+  }
   item.quantity = Number(req.body.quantity); await cart.save(); res.json(await getCart(req.user._id))
 })
 export const removeCartItem = asyncHandler(async (req, res) => { const cart = await Cart.findOne({ user: req.user._id }); if (cart) { cart.items.pull(req.params.itemId); await cart.save() } res.json(await getCart(req.user._id)) })
 export const applyCoupon = asyncHandler(async (req, res) => {
-  const { cart, items } = await getCart(req.user._id), subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0)
+  const { cart, items } = await getCart(req.user._id), subtotal = items.reduce((sum, i) => sum + (i.available ? i.lineTotal : 0), 0)
   const { coupon, discount } = await getCouponDiscount(req.body.code, subtotal); cart.couponCode = coupon.code; await cart.save(); res.json({ ...(await getCart(req.user._id)), coupon: { code: coupon.code, discount } })
 })
 export const removeCoupon = asyncHandler(async (req, res) => { await Cart.updateOne({ user: req.user._id }, { $unset: { couponCode: 1 } }); res.json(await getCart(req.user._id)) })
@@ -84,7 +97,7 @@ export const toggleWishlist = asyncHandler(async (req, res) => {
 
 async function reserveItem(item) {
   const qty = item.quantity
-  const query = item.variantId ? { _id: item.product, isActive: true, stock: { $gte: qty }, variants: { $elemMatch: { _id: item.variantId, stock: { $gte: qty } } } } : { _id: item.product, isActive: true, stock: { $gte: qty } }
+  const query = item.variantId ? { _id: item.product, isActive: true, isAvailable: true, stock: { $gte: qty }, variants: { $elemMatch: { _id: item.variantId, stock: { $gte: qty } } } } : { _id: item.product, isActive: true, isAvailable: true, stock: { $gte: qty } }
   const update = item.variantId ? { $inc: { stock: -qty, 'variants.$.stock': -qty } } : { $inc: { stock: -qty } }
   return Product.findOneAndUpdate(query, update, { new: true })
 }
@@ -107,6 +120,7 @@ export const createOrder = asyncHandler(async (req, res) => {
       const product = await Product.findById(item.product._id)
       if (!product?.isActive || !product.isAvailable) throw Object.assign(new Error(`${item.product.name} is no longer available.`), { status: 400 })
       const variant = item.variantId ? product.variants.id(item.variantId) : null
+      if (item.variantId && !variant) throw Object.assign(new Error(`The selected option for ${product.name} is no longer available.`), { status: 400 })
       const unitPrice = effectivePrice(product, variant)
       const updated = await reserveItem({ product: product._id, variantId: item.variantId, quantity: item.quantity })
       if (!updated) throw Object.assign(new Error(`${product.name} does not have enough stock.`), { status: 400 })

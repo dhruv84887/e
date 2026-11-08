@@ -493,3 +493,29 @@ textarea:focus-visible {
 .saved-address-top button + button {
   margin-left: 0;
 }
+
+.cart-item-unavailable .cart-item-image img {
+  opacity: .48;
+}
+
+.cart-unavailable-message {
+  margin-top: 7px;
+  color: #a15f54;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cart-item-unavailable .cart-item-total {
+  color: #a15f54;
+  font-size: 12px;
+}
+
+.cart-blocked-checkout {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #eed9d5;
+  background: #fbf1ef;
+  color: #94584e;
+  font-size: 12px;
+  line-height: 1.5;
+}
