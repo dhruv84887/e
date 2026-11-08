@@ -226,7 +226,10 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
     paymentMethod: 'cod', shippingAddress: { fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India' },
   }).expect(201)
   assert.equal((await (await import('../src/models/Coupon.js')).default.findOne({ code: 'SAVE10' })).usedCount, 2)
-  await api.post(`/api/orders/${cancelOrder.body.order._id}/cancel`).set('Cookie', customerCookie).send({ reason: 'Testing inventory restoration' }).expect(200)
+  const cancelledOrder = await api.post(`/api/orders/${cancelOrder.body.order._id}/cancel`).set('Cookie', customerCookie).send({ reason: 'Testing inventory restoration' }).expect(200)
+  assert.equal(cancelledOrder.body.order.paymentStatus, 'failed')
+  const cancelledCodPayment = await (await import('../src/models/Payment.js')).default.findOne({ order: cancelOrder.body.order._id, provider: 'cod' }).lean()
+  assert.equal(cancelledCodPayment.status, 'failed')
   assert.equal((await (await import('../src/models/Coupon.js')).default.findOne({ code: 'SAVE10' })).usedCount, 1)
   const finalProduct = await (await import('../src/models/Product.js')).default.findById(productId)
   assert.equal(finalProduct.stock, 1)
@@ -235,6 +238,16 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.equal(finalOverview.metrics.totalOrders, 2)
   assert.equal(finalOverview.metrics.revenue, 1800)
   assert.equal(finalOverview.bestSellers[0].soldCount, 2)
+
+  await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId, quantity: 1 }).expect(201)
+  const adminCancelledOrder = await api.post('/api/orders').set('Cookie', customerCookie).send({
+    paymentMethod: 'cod', shippingAddress: { fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India' },
+  }).expect(201)
+  await api.patch(`/api/admin/orders/${adminCancelledOrder.body.order._id}`).set('Cookie', customerCookie).send({ status: 'cancelled' }).expect(403)
+  const adminCancellation = await api.patch(`/api/admin/orders/${adminCancelledOrder.body.order._id}`).set('Cookie', adminCookie).send({ status: 'cancelled' }).expect(200)
+  assert.equal(adminCancellation.body.order.paymentStatus, 'failed')
+  assert.equal(await (await import('../src/models/Payment.js')).default.findOne({ order: adminCancelledOrder.body.order._id, provider: 'cod' }).then((record) => record.status), 'failed')
+  assert.equal((await (await import('../src/models/Product.js')).default.findById(productId)).stock, 1)
 
   await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId, quantity: 1 }).expect(201)
   const onlineOrder = await api.post('/api/orders').set('Cookie', customerCookie).send({
@@ -249,7 +262,7 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.equal(verified.body.order.paymentStatus, 'paid')
   assert.equal((await (await import('../src/models/Product.js')).default.findById(productId)).soldCount, 3)
   const paidOverview = (await api.get('/api/admin/overview').set('Cookie', adminCookie).expect(200)).body
-  assert.equal(paidOverview.metrics.totalOrders, 3)
+  assert.equal(paidOverview.metrics.totalOrders, 4)
   assert.equal(paidOverview.metrics.revenue, 2844)
 
   const razorpayKeyId = process.env.RAZORPAY_KEY_ID
@@ -284,7 +297,7 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   await api.post('/api/payments/razorpay/verify').set('Cookie', customerCookie).send({ razorpay_order_id: 'order_cancelled_before_payment', razorpay_payment_id: 'pay_too_late', razorpay_signature: lateSignature }).expect(409)
   assert.equal((await (await import('../src/models/Product.js')).default.findById(secondProduct.body.product._id)).stock, 8)
   const settledOverview = (await api.get('/api/admin/overview').set('Cookie', adminCookie).expect(200)).body
-  assert.equal(settledOverview.metrics.totalOrders, 4)
+  assert.equal(settledOverview.metrics.totalOrders, 5)
   assert.equal(settledOverview.metrics.revenue, 1800)
   assert.equal(settledOverview.bestSellers[0].soldCount, 2)
 

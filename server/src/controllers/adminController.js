@@ -143,7 +143,8 @@ export const updateOrder = asyncHandler(async (req, res) => {
       else await Product.updateOne({ _id: item.product }, { $inc: { stock: item.quantity } })
     }
     if (order.couponCode) await Coupon.updateOne({ code: order.couponCode, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } })
-    await Payment.updateMany({ order: order._id, provider: 'razorpay', status: 'created' }, { status: 'failed' })
+    order.paymentStatus = 'failed'
+    await Payment.updateMany({ order: order._id, status: { $in: ['created', 'authorized'] } }, { status: 'failed' })
   }
   order.status = nextStatus
   if (req.body.trackingNumber !== undefined) order.trackingNumber = req.body.trackingNumber
