@@ -348,6 +348,12 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   await api.get(`/api/admin/customers/${registered.body.user.id}?page=0`).set('Cookie', adminCookie).expect(400)
 
   const Order = (await import('../src/models/Order.js')).default
+  const Address = (await import('../src/models/Address.js')).default
+  const assertHasIndex = (model, fields) => assert.ok(model.schema.indexes().some(([keys]) => Object.entries(fields).every(([key, direction]) => keys[key] === direction)))
+  assertHasIndex(Order, { user: 1, createdAt: -1, _id: -1 })
+  assertHasIndex(Order, { status: 1, createdAt: -1, _id: -1 })
+  assertHasIndex(Address, { user: 1, isDefault: -1, createdAt: -1 })
+  assertHasIndex(User, { role: 1, isActive: 1, createdAt: -1 })
   const historyAddress = { fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India' }
   await Order.insertMany(Array.from({ length: 11 }, (_, index) => ({
     orderNumber: `HISTORY-PAGE-${String(index + 1).padStart(2, '0')}`,

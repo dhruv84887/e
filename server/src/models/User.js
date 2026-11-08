@@ -14,5 +14,6 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 userSchema.pre('save', async function () { if (this.isModified('password')) this.password = await bcrypt.hash(this.password, 12) })
+userSchema.index({ role: 1, isActive: 1, createdAt: -1 })
 userSchema.methods.comparePassword = function (candidate) { return bcrypt.compare(candidate, this.password) }
 export default mongoose.model('User', userSchema)
