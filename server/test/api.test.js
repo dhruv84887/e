@@ -300,4 +300,23 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   assert.ok(customerHistory.body.pagination.total >= 5)
   assert.ok(customerHistory.body.orders.length > 0)
   await api.get(`/api/admin/customers/${registered.body.user.id}?page=0`).set('Cookie', adminCookie).expect(400)
+
+  const Order = (await import('../src/models/Order.js')).default
+  const historyAddress = { fullName: 'Test Customer', phone: '9876543210', line1: '1 Test Street', city: 'Mumbai', state: 'Maharashtra', postalCode: '400001', country: 'India' }
+  await Order.insertMany(Array.from({ length: 11 }, (_, index) => ({
+    orderNumber: `HISTORY-PAGE-${String(index + 1).padStart(2, '0')}`,
+    user: registered.body.user.id,
+    items: [], shippingAddress: historyAddress, subtotal: 0, discount: 0, tax: 0, shipping: 0, total: 0,
+    paymentMethod: 'cod', paymentStatus: 'paid', status: 'delivered',
+    createdAt: new Date(Date.now() + index * 1000)
+  })))
+  const ordersPageOne = await api.get('/api/orders?page=1').set('Cookie', customerCookie).expect(200)
+  assert.equal(ordersPageOne.body.pagination.page, 1)
+  assert.equal(ordersPageOne.body.pagination.limit, 10)
+  assert.equal(ordersPageOne.body.orders.length, 10)
+  const ordersPageTwo = await api.get('/api/orders?page=2').set('Cookie', customerCookie).expect(200)
+  assert.ok(ordersPageTwo.body.orders.length > 0)
+  assert.equal(ordersPageTwo.body.pagination.total, ordersPageOne.body.pagination.total)
+  assert.equal(ordersPageTwo.body.orders.some((order) => ordersPageOne.body.orders.some((firstPageOrder) => firstPageOrder._id === order._id)), false)
+  await api.get('/api/orders?page=0').set('Cookie', customerCookie).expect(400)
 })

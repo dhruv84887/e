@@ -138,7 +138,16 @@ export const createOrder = asyncHandler(async (req, res) => {
     return res.status(201).json({ order: createdOrder })
   } catch (err) { if (createdOrder) { await Payment.deleteMany({ order: createdOrder._id }).catch(() => {}); await Order.deleteOne({ _id: createdOrder._id }).catch(() => {}) } if (couponUsed) await Coupon.updateOne({ _id: couponUsed }, { $inc: { usedCount: -1 } }).catch(() => {}); await releaseItems(reserved).catch(() => {}); throw err }
 })
-export const listMyOrders = asyncHandler(async (req, res) => { const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 }).lean(); res.json({ orders }) })
+export const listMyOrders = asyncHandler(async (req, res) => {
+  const page = Number(req.query.page || 1)
+  if (!Number.isSafeInteger(page) || page < 1) return res.status(400).json({ message: 'Page must be a positive whole number.' })
+  const limit = 10, filter = { user: req.user._id }
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Order.countDocuments(filter)
+  ])
+  res.json({ orders, pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) } })
+})
 export const getMyOrder = asyncHandler(async (req, res) => { const order = await Order.findOne({ _id: req.params.id, user: req.user._id }).lean(); if (!order) return res.status(404).json({ message: 'Order not found.' }); res.json({ order }) })
 export const cancelMyOrder = asyncHandler(async (req, res) => {
   const order = await Order.findOne({ _id: req.params.id, user: req.user._id })

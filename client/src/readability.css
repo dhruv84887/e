@@ -464,3 +464,13 @@ textarea:focus-visible {
   padding: 0 10px;
   font-size: 11px;
 }
+
+.orders-page-meta {
+  margin: 6px 0 0;
+  color: #858980;
+  font-size: 12px;
+}
+
+.orders-pagination {
+  margin-bottom: 40px;
+}
