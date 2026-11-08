@@ -48,6 +48,18 @@ The API reads `server/.env` or its process environment. Configure the store name
 
 For a single-origin deployment, build the client with `npm run build`, then run the server with `NODE_ENV=production npm start`; the Express app serves `client/dist` and the `/api` routes together. Configure the production environment before starting it. If the storefront is hosted separately, set `VITE_API_URL` at client build time and set `CLIENT_URL` to its exact origin on the API.
 
+## Public preview hosting on Render
+
+This repository includes a Render Blueprint for a single-origin storefront and API. It builds the client, starts the Express server, configures HTTPS cookies and same-origin requests, checks `/api/health`, generates a server-only JWT secret, and seeds the starter catalog after the first successful deploy.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dhruv84887/e)
+
+Before deploying, create a persistent MongoDB database (for example, a MongoDB Atlas cluster) and make sure its network access rules allow the Render service to connect. During Blueprint setup, provide the database connection string as `MONGODB_URI`, plus the first administrator's email and a strong unique password as `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`. Enter those values in Render's secret fields; do not commit them or paste them into source files. The Blueprint creates the admin and starter products once after the first deploy. The `CLIENT_URL` is linked to Render's generated service URL, so no separate frontend host is needed.
+
+The Blueprint uses Render's free web-service plan to avoid starting a paid service. Render's free services can spin down when idle, and Render says free instances are for previews rather than production. Upgrade the service to a paid plan before relying on it for a live store. Configure SMTP for password-reset email, Razorpay test credentials for online payments, and Cloudinary credentials for admin image uploads as needed. Cash on delivery and externally hosted product image URLs work without those optional integrations.
+
+After deployment, open the service URL and confirm `/api/health` reports `database: "connected"`; then sign in to `/login` using the administrator credentials configured in Render.
+
 ## Verify changes
 
 ```bash
