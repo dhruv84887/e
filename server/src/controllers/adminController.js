@@ -173,7 +173,18 @@ export const customers = asyncHandler(async (req, res) => {
   const byUser = new Map(counts.map((c) => [String(c._id), c]))
   res.json({ customers: users.map((u) => ({ ...u, ...(byUser.get(String(u._id)) || { orders: 0, spent: 0 }) })), pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
 })
-export const customerDetails = asyncHandler(async (req, res) => { const user = await User.findOne({ _id: req.params.id, role: 'customer' }).select('name email phone addresses isActive createdAt'); if (!user) return res.status(404).json({ message: 'Customer not found.' }); const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).lean(); res.json({ customer: user, orders }) })
+export const customerDetails = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ _id: req.params.id, role: 'customer' }).select('name email phone addresses isActive createdAt')
+  if (!user) return res.status(404).json({ message: 'Customer not found.' })
+  const rawPage = Number(req.query.page || 1)
+  if (!Number.isInteger(rawPage) || rawPage < 1) return res.status(400).json({ message: 'Page must be a positive whole number.' })
+  const page = rawPage, limit = 10, filter = { user: user._id }
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Order.countDocuments(filter)
+  ])
+  res.json({ customer: user, orders, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
+})
 export const adminReviews = asyncHandler(async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1), limit = 25
   const filter = req.query.status === 'published' ? { isPublished: true } : req.query.status === 'hidden' ? { isPublished: false } : {}

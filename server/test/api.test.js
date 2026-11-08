@@ -284,4 +284,8 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   const unavailableDetails = await api.get(`/api/products/${unavailableProduct.body.product.slug}`).expect(200)
   assert.equal(unavailableDetails.body.product.isAvailable, false)
   await api.post('/api/cart/items').set('Cookie', customerCookie).send({ productId: unavailableProduct.body.product._id, quantity: 1 }).expect(404)
+  const customerHistory = await api.get(`/api/admin/customers/${registered.body.user.id}?page=1`).set('Cookie', adminCookie).expect(200)
+  assert.ok(customerHistory.body.pagination.total >= 5)
+  assert.ok(customerHistory.body.orders.length > 0)
+  await api.get(`/api/admin/customers/${registered.body.user.id}?page=0`).set('Cookie', adminCookie).expect(400)
 })
