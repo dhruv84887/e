@@ -93,6 +93,12 @@ test('customer, catalog, cart, checkout, and admin API flow', async () => {
   await api.post('/api/auth/login').send({ email: 'customer@example.test', password: 'securepass123' }).expect(401)
   const reactivatedCustomer = await api.patch(`/api/admin/customers/${registered.body.user.id}`).set('Cookie', adminCookie).send({ isActive: true }).expect(200)
   assert.equal(reactivatedCustomer.body.customer.isActive, true)
+  const alternateAddress = await api.post('/api/auth/addresses').set('Cookie', customerCookie).send({ label: 'Work', fullName: 'Test Customer', phone: '9876543210', line1: '2 Office Road', city: 'Pune', state: 'Maharashtra', postalCode: '411001', country: 'India', isDefault: false }).expect(201)
+  await api.delete(`/api/auth/addresses/${savedAddress.body.address._id}`).set('Cookie', customerCookie).expect(200)
+  const addressesAfterDefaultRemoval = await api.get('/api/auth/addresses').set('Cookie', customerCookie).expect(200)
+  assert.equal(addressesAfterDefaultRemoval.body.addresses.length, 1)
+  assert.equal(String(addressesAfterDefaultRemoval.body.addresses[0]._id), String(alternateAddress.body.address._id))
+  assert.equal(addressesAfterDefaultRemoval.body.addresses[0].isDefault, true)
 
   const contactResponse = await api.post('/api/contact').send({ name: 'Curious Shopper', email: 'hello@example.test', subject: 'A question about delivery', message: 'Could you please tell me when this item will arrive?' }).expect(201)
   assert.match(contactResponse.body.message, /Thanks for writing/)

@@ -34,7 +34,18 @@ export const updateAddress = asyncHandler(async (req, res) => {
   await address.save()
   res.json({ address })
 })
-export const deleteAddress = asyncHandler(async (req, res) => { const address = await Address.findOneAndDelete({ _id: req.params.id, user: req.user._id }); if (!address) return res.status(404).json({ message: 'Address not found.' }); res.json({ message: 'Address removed.' }) })
+export const deleteAddress = asyncHandler(async (req, res) => {
+  const address = await Address.findOneAndDelete({ _id: req.params.id, user: req.user._id })
+  if (!address) return res.status(404).json({ message: 'Address not found.' })
+  if (address.isDefault) {
+    const nextDefault = await Address.findOne({ user: req.user._id }).sort({ createdAt: -1, _id: -1 })
+    if (nextDefault) {
+      await Address.updateMany({ user: req.user._id }, { $set: { isDefault: false } })
+      await Address.updateOne({ _id: nextDefault._id, user: req.user._id }, { $set: { isDefault: true } })
+    }
+  }
+  res.json({ message: 'Address removed.' })
+})
 export const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email.toLowerCase() })
   if (user) {
