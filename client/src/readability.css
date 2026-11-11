@@ -348,6 +348,10 @@ textarea:focus-visible {
   opacity: .55;
 }
 
+.mobile-filter-toggle {
+  display: none;
+}
+
 @media (max-width: 700px) {
   .nav-inner > a:nth-of-type(n + 2):not(.nav-story) {
     display: none;
@@ -366,6 +370,128 @@ textarea:focus-visible {
 
   .nav-dropdown .nav-child {
     font-size: 12px;
+  }
+
+  .collection-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .filters {
+    display: none;
+  }
+
+  .filters.filters-open {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 0 15px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    animation: filter-panel-in .22s var(--ease-polished) both;
+  }
+
+  .filter-title {
+    height: 52px;
+    font-size: 14px;
+  }
+
+  .filter-title button {
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  .filter-group h3 {
+    font-size: 13px;
+  }
+
+  .filter-option {
+    min-height: 40px;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .filter-option input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .price-filter {
+    gap: 8px;
+  }
+
+  .price-filter input {
+    width: calc(50% - 22px);
+    height: 42px;
+    padding-inline: 10px;
+    font-size: 14px;
+  }
+
+  .results-bar {
+    height: auto;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  .mobile-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid #dedfd8;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 13px;
+    transition: background .2s var(--ease-polished), border-color .2s var(--ease-polished);
+  }
+
+  .mobile-filter-toggle:hover {
+    border-color: #b9beb2;
+    background: #f7f8f4;
+  }
+
+  .mobile-filter-toggle b {
+    min-width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--olive);
+    color: #fff;
+    font-size: 11px;
+  }
+
+  .sort-control {
+    font-size: 13px;
+  }
+
+  .sort-control select {
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .pagination,
+  .pagination button {
+    font-size: 13px;
+  }
+}
+
+@keyframes filter-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
