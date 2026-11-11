@@ -362,6 +362,11 @@ textarea:focus-visible {
   display: none;
 }
 
+.product-card:focus-within .quick-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (max-width: 900px) {
   .product-grid.columns-4 .product-card:nth-child(4) {
     display: block;
