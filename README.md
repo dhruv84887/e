@@ -48,6 +48,29 @@ The API reads `server/.env` or its process environment. Configure the store name
 
 For a single-origin deployment, build the client with `npm run build`, then run the server with `NODE_ENV=production npm start`; the Express app serves `client/dist` and the `/api` routes together. Configure the production environment before starting it. If the storefront is hosted separately, set `VITE_API_URL` at client build time and set `CLIENT_URL` to its exact origin on the API.
 
+## Free preview hosting on Koyeb
+
+This repository can also run as one full-stack service on Koyeb. The free instance is intended for previews and hobby projects, not a production store: it has 512 MB RAM and 0.1 vCPU, and sleeps after an hour without traffic. It receives a `*.koyeb.app` URL; a `.com` domain is separate and is not included.
+
+1. In Koyeb, create a Web Service from `github.com/dhruv84887/e`, branch `main`. Keep the work directory at the repository root and use the buildpack builder.
+2. Set the build command to `npm ci --include=dev && npm run build`. The root `Procfile` starts the API and built storefront with `npm start`.
+3. Configure these service environment variables. Enter secrets directly in Koyeb, never in GitHub:
+
+   - `NODE_ENV=production`
+   - `MONGODB_URI` — the MongoDB Atlas application user's URI
+   - `JWT_SECRET` — a unique random value of at least 32 characters
+   - `CLIENT_URL=https://{{ KOYEB_PUBLIC_DOMAIN }}`
+   - `COOKIE_SECURE=true`
+   - `COOKIE_SAME_SITE=lax`
+   - `STORE_NAME=Atelier`
+   - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and optionally `SEED_ADMIN_NAME`
+
+4. In MongoDB Atlas, add the current outbound addresses for the chosen Koyeb region to Network Access. Koyeb does not guarantee static outbound IPs; its published pool can change, so an Atlas allowlist may need maintenance. Keep database authentication enabled and do not use `0.0.0.0/0` as a shortcut.
+5. After the first deployment is healthy, seed the starter catalog and initial administrator once from an authenticated Koyeb CLI session: `koyeb services exec <service-name> --app <app-name> -- npm run seed`. Do not add this to the recurring start command.
+6. Open the `*.koyeb.app` URL and confirm `/api/health` reports `database: "connected"`. Sign in at `/login` with the administrator account configured above.
+
+Cash on delivery works without gateway credentials. Add Razorpay test credentials, Cloudinary credentials, and SMTP settings as protected environment variables only when those integrations are needed. The free Koyeb instance can be slow after waking from sleep; use a paid, always-on plan and proper operational monitoring before accepting real customer orders.
+
 ## Public preview hosting on Render
 
 This repository includes a Render Blueprint for a single-origin storefront and API. It builds the client, starts the Express server, configures HTTPS cookies and same-origin requests, checks `/api/health`, generates a server-only JWT secret, and seeds the starter catalog after the first successful deploy.
