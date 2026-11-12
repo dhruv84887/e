@@ -6,10 +6,9 @@ services:
     region: singapore
     branch: main
     buildCommand: npm ci --include=dev && npm run build
-    startCommand: npm start
+    startCommand: npm run seed && npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
-    initialDeployHook: npm run seed
     envVars:
       - key: NODE_ENV
         value: production

@@ -41,11 +41,18 @@ export async function seedDemoData() {
   if (process.env.SEED_ADMIN_EMAIL && process.env.SEED_ADMIN_PASSWORD) {
     const email = process.env.SEED_ADMIN_EMAIL.toLowerCase()
     let admin = await User.findOne({ email }).select('+password')
-    if (!admin) admin = new User({ email })
-    admin.name = process.env.SEED_ADMIN_NAME || 'Store Admin'
-    admin.password = process.env.SEED_ADMIN_PASSWORD
-    admin.role = 'admin'
-    admin.isActive = true
+    if (!admin) {
+      admin = new User({
+        email,
+        name: process.env.SEED_ADMIN_NAME || 'Store Admin',
+        password: process.env.SEED_ADMIN_PASSWORD,
+        role: 'admin',
+        isActive: true
+      })
+    } else {
+      admin.role = 'admin'
+      admin.isActive = true
+    }
     await admin.save()
   }
   console.info(`Seeded ${categoryData.length} categories and ${productData.length} products.`)
